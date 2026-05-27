@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>시장조사 가격비교 대시보드</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh}
+
+.header{background:linear-gradient(135deg,#1e293b 0%,#0c1222 100%);padding:18px 28px;border-bottom:1px solid #334155;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.header h1{font-size:22px;color:#f8fafc;font-weight:800}
+.header p{font-size:12px;color:#94a3b8}
+
+.wrap{max-width:1500px;margin:0 auto;padding:14px 18px}
+
+.controls{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center;background:#1e293b;border:1px solid #334155;border-radius:8px;padding:10px}
+.controls select,.controls input{padding:7px 10px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;font-size:13px;font-family:inherit}
+.controls button{padding:7px 14px;background:#3b82f6;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600}
+
+.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:14px}
+.sc{background:#1e293b;border:1px solid #334155;border-radius:8px;padding:11px;text-align:center}
+.sc .n{font-size:22px;font-weight:800;color:#fbbf24}
+.sc .l{font-size:11px;color:#94a3b8;margin-top:2px}
+
+h2{font-size:16px;color:#f8fafc;margin:18px 0 10px;font-weight:800;display:flex;align-items:center;gap:8px}
+h2 .badge{background:#3b82f6;color:#fff;font-size:11px;padding:3px 10px;border-radius:10px;font-weight:700}
+
+table{width:100%;border-collapse:collapse;background:#1e293b;border-radius:8px;overflow:hidden;margin-bottom:18px;font-size:13px}
+th,td{padding:9px 11px;border-bottom:1px solid #334155;border-right:1px solid #334155}
+th{background:#0f172a;color:#94a3b8;font-weight:700;text-align:center;font-size:12px}
+td{vertical-align:top}
+td.cat{font-weight:700;color:#fbbf24;background:#0f172a;text-align:center;width:60px}
+td.item{font-weight:700;color:#f8fafc;width:100px}
+td.price{text-align:right;font-weight:700;color:#22c55e;font-family:Consolas,monospace}
+td.price.lowest{background:#0a3d1f;color:#86efac}
+td.price.highest{background:#3d1212;color:#fca5a5}
+td.match{font-size:11px;color:#94a3b8;line-height:1.4;max-width:280px;word-break:break-all}
+td.empty{color:#475569;text-align:center}
+
+.trend-chart{background:#1e293b;border:1px solid #334155;border-radius:8px;padding:14px;margin-bottom:18px}
+.trend-chart h3{font-size:13px;color:#94a3b8;margin-bottom:10px;font-weight:600}
+.trend-line{display:flex;align-items:flex-end;gap:4px;height:80px;margin-top:6px}
+.trend-bar{flex:1;background:linear-gradient(180deg,#3b82f6,#1e3a8a);border-radius:3px 3px 0 0;position:relative;min-width:30px}
+.trend-bar:hover{background:linear-gradient(180deg,#60a5fa,#3b82f6)}
+.trend-bar .val{position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:10px;color:#cbd5e1;white-space:nowrap}
+.trend-bar .lbl{position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);font-size:9px;color:#64748b;white-space:nowrap}
+
+.legend{font-size:11px;color:#94a3b8;margin-bottom:10px;display:flex;gap:14px;flex-wrap:wrap}
+.legend span{display:flex;align-items:center;gap:5px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:2px}
+
+.note{background:#1e293b;border-left:4px solid #fbbf24;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#cbd5e1;border-radius:0 6px 6px 0}
+
+.footer{margin-top:30px;padding:14px;text-align:center;font-size:11px;color:#64748b}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>📊 두레 vs 4사 가격 비교 대시보드</h1>
+    <p>매일 09:30 KST 자동 수집 · 두레 / 한살림 / 자연드림 / 오아시스 / 마켓컬리</p>
+  </div>
+  <div>
+    <button onclick="exportCsv()" style="padding:7px 14px;background:#475569;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">📥 CSV 내보내기</button>
+  </div>
+</div>
+
+<div class="wrap">
+
+<div class="controls">
+  <label style="font-size:12px;color:#94a3b8">조회 날짜:</label>
+  <select id="dateSelect"></select>
+  <span id="dataMeta" style="font-size:11px;color:#64748b;margin-left:10px"></span>
+</div>
+
+<div class="summary" id="summary"></div>
+
+<div class="note" id="note">
+  ℹ 매장별 상품 검색 결과 첫 매칭을 가져옵니다. 매장마다 검색어 해석이 다르므로 매칭된 상품명을 함께 표시합니다.
+  검색 결과가 의도와 다를 경우 검색 키워드 조정이 필요합니다.
+</div>
+
+<h2>🥩 축산 비교 <span class="badge" id="meatCount">0</span></h2>
+<table id="meatTable"></table>
+
+<h2>🐟 수산 비교 <span class="badge" id="fishCount">0</span></h2>
+<table id="fishTable"></table>
+
+<h2>📋 두레 22주 기획품목 (참고)</h2>
+<table id="planTable"></table>
+
+<h2>📈 가격 추이 (수집 누적)</h2>
+<div id="trendArea"></div>
+
+<div class="footer">
+  데이터 위치: D:\AI 폴더\1.claude\시장조사\ · history.json (누적) · today.json (당일) · 매일 routine으로 GitHub 동기화됨
+</div>
+
+</div>
+
+<script src="history.js"></script>
+<script>
+const STORES = ['두레','한살림','자연드림','오아시스','마켓컬리'];
+const HISTORY = window.MARKET_HISTORY || [];
+
+function fmtPrice(p){ return p ? p.toLocaleString() + '원' : '-'; }
+
+function render(){
+  const dates = HISTORY.map(h => h.date);
+  const sel = document.getElementById('dateSelect');
+  sel.innerHTML = dates.map(d => `<option value="${d}">${d}</option>`).join('');
+  sel.value = dates[dates.length - 1] || '';
+  sel.onchange = renderDay;
+  renderDay();
+  renderTrends();
+}
+
+function renderDay(){
+  const date = document.getElementById('dateSelect').value;
+  const day = HISTORY.find(h => h.date === date);
+  if(!day){ return; }
+  document.getElementById('dataMeta').textContent = `${date} 기준 · ${Object.keys(day.items).length}개 품목`;
+
+  // Summary
+  const totalCells = Object.keys(day.items).length * STORES.length;
+  let successCells = 0;
+  Object.values(day.items).forEach(it => {
+    STORES.forEach(s => { if(it.stores[s]?.price) successCells++; });
+  });
+  const successRate = Math.round(successCells / totalCells * 100);
+  // 두레가 5사 중 최저 횟수
+  let dureLowestCount = 0;
+  Object.values(day.items).forEach(it => {
+    const prices = STORES.map(s => it.stores[s]?.price).filter(p => p);
+    if(prices.length && it.stores['두레']?.price === Math.min(...prices)) dureLowestCount++;
+  });
+  document.getElementById('summary').innerHTML = `
+    <div class="sc"><div class="n">${Object.keys(day.items).length}</div><div class="l">비교 품목</div></div>
+    <div class="sc"><div class="n">${STORES.length}</div><div class="l">비교 매장</div></div>
+    <div class="sc"><div class="n">${successCells}/${totalCells}</div><div class="l">수집 성공률 ${successRate}%</div></div>
+    <div class="sc"><div class="n" style="color:#22c55e">${dureLowestCount}</div><div class="l">두레 최저가 횟수</div></div>
+  `;
+
+  // Tables
+  const meat = [], fish = [];
+  Object.entries(day.items).forEach(([key, info]) => {
+    (info.category === '축산' ? meat : fish).push({ key, ...info });
+  });
+  document.getElementById('meatTable').innerHTML = makeTable(meat);
+  document.getElementById('fishTable').innerHTML = makeTable(fish);
+  document.getElementById('meatCount').textContent = meat.length;
+  document.getElementById('fishCount').textContent = fish.length;
+
+  // Plan table
+  const plan = day.dure_plan_22w || [];
+  let planHtml = '<thead><tr><th>코드</th><th>품목명</th><th>두레 기획가</th></tr></thead><tbody>';
+  plan.forEach(p => {
+    planHtml += `<tr><td class="item">${p.code}</td><td>${p.name}</td><td class="price">${fmtPrice(p.sale)}</td></tr>`;
+  });
+  planHtml += '</tbody>';
+  document.getElementById('planTable').innerHTML = planHtml;
+}
+
+function makeTable(rows){
+  let html = '<thead><tr><th>분류</th><th>품목</th>';
+  STORES.forEach(s => html += `<th>${s}</th>`);
+  html += '</tr></thead><tbody>';
+  rows.forEach(r => {
+    const prices = STORES.map(s => r.stores[s]?.price).filter(p => p);
+    const lo = prices.length ? Math.min(...prices) : null;
+    const hi = prices.length ? Math.max(...prices) : null;
+    html += `<tr><td class="cat">${r.category}</td><td class="item">${r.key}</td>`;
+    STORES.forEach(s => {
+      const v = r.stores[s];
+      if(!v?.price){
+        html += `<td class="empty">${v?.error ? '✗' : '-'}</td>`;
+      } else {
+        const cls = v.price === lo ? 'price lowest' : (v.price === hi && prices.length > 1 ? 'price highest' : 'price');
+        const matchName = v.name ? `<div class="match">↳ ${escapeHtml(v.name.slice(0,80))}</div>` : '';
+        html += `<td class="${cls}">${fmtPrice(v.price)}${matchName}</td>`;
+      }
+    });
+    html += '</tr>';
+  });
+  html += '</tbody>';
+  return html;
+}
+
+function renderTrends(){
+  // For each item in latest day, show its 두레 price over time (last 14 days)
+  const items = HISTORY.length ? Object.keys(HISTORY[HISTORY.length-1].items) : [];
+  const recent = HISTORY.slice(-14);
+  let html = '';
+  items.forEach(key => {
+    const points = recent.map(h => ({ date: h.date.slice(5), price: h.items[key]?.stores['두레']?.price })).filter(p => p.price);
+    if(points.length === 0) return;
+    const max = Math.max(...points.map(p => p.price));
+    html += `<div class="trend-chart">
+      <h3>${escapeHtml(key)} · 두레 가격 추이 (최근 ${points.length}일)</h3>
+      <div class="trend-line">
+        ${points.map(p => `<div class="trend-bar" style="height:${Math.max(20, p.price/max*100)}%"><span class="val">${p.price.toLocaleString()}</span><span class="lbl">${p.date}</span></div>`).join('')}
+      </div>
+    </div>`;
+  });
+  if(!html) html = '<div style="color:#64748b;padding:20px;text-align:center">데이터 누적 후 추세 그래프가 표시됩니다 (매일 9:30 자동 수집)</div>';
+  document.getElementById('trendArea').innerHTML = html;
+}
+
+function escapeHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function exportCsv(){
+  const date = document.getElementById('dateSelect').value;
+  const day = HISTORY.find(h => h.date === date);
+  if(!day) return;
+  let csv = '﻿분류,품목,' + STORES.join(',') + ',비고\n';
+  Object.entries(day.items).forEach(([key, info]) => {
+    const row = [info.category, key];
+    STORES.forEach(s => row.push(info.stores[s]?.price || ''));
+    row.push('');
+    csv += row.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(',') + '\n';
+  });
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `시장조사_${date}.csv`;
+  a.click();
+}
+
+render();
+</script>
+</body>
+</html>
