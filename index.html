@@ -53,6 +53,36 @@ td.empty{color:#475569;text-align:center}
 .note{background:#1e293b;border-left:4px solid #fbbf24;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#cbd5e1;border-radius:0 6px 6px 0}
 
 .footer{margin-top:30px;padding:14px;text-align:center;font-size:11px;color:#64748b}
+
+/* 모바일 반응형: 표를 카드 형식으로 전환 */
+@media (max-width: 720px) {
+  body{font-size:13px}
+  .header{padding:12px 14px}
+  .header h1{font-size:18px}
+  .wrap{padding:10px 10px}
+  .summary{grid-template-columns:repeat(2,1fr);gap:6px}
+  .sc{padding:8px}
+  .sc .n{font-size:18px}
+  h2{font-size:15px;margin:14px 0 8px}
+  /* 표 → 카드형 변환 */
+  #meatTable thead, #fishTable thead{display:none}
+  #meatTable, #fishTable, #planTable{display:block;background:transparent;border:none}
+  #meatTable tbody, #fishTable tbody, #planTable tbody{display:block}
+  #meatTable tr, #fishTable tr, #planTable tr{display:block;background:#1e293b;border:1px solid #334155;border-radius:8px;margin-bottom:8px;padding:10px}
+  #meatTable td, #fishTable td, #planTable td{display:block;border:none;padding:5px 0;text-align:left;background:transparent !important}
+  #meatTable td.cat, #fishTable td.cat{display:inline-block;background:#0f172a;color:#fbbf24;padding:3px 10px;border-radius:6px;font-size:11px;margin-right:6px;width:auto}
+  #meatTable td.item, #fishTable td.item, #planTable td.item{display:inline-block;font-size:15px;font-weight:800;color:#f8fafc;width:auto;padding:3px 0;margin-bottom:6px}
+  #meatTable td.price, #fishTable td.price, #planTable td.price{padding:6px 10px;border-radius:5px;margin:3px 0;display:flex;justify-content:space-between;align-items:center;font-size:13px}
+  #meatTable td.price::before, #fishTable td.price::before {content:attr(data-store) ": ";color:#94a3b8;font-weight:600;font-family:'Malgun Gothic',sans-serif}
+  #meatTable td.price.lowest, #fishTable td.price.lowest{background:#0a3d1f !important}
+  #meatTable td.price.highest, #fishTable td.price.highest{background:#3d1212 !important}
+  #meatTable td.match, #fishTable td.match{padding-left:14px;font-size:10px;margin-top:-3px;color:#64748b;max-width:100%}
+  #meatTable td.empty, #fishTable td.empty{padding:6px 10px;color:#475569;font-size:12px}
+  #meatTable td.empty::before, #fishTable td.empty::before {content:attr(data-store) ": ";color:#94a3b8;font-weight:600;font-family:'Malgun Gothic',sans-serif}
+  .trend-chart{padding:10px}
+  .trend-line{height:60px}
+  .trend-bar{min-width:24px}
+}
 </style>
 </head>
 <body>
@@ -175,11 +205,11 @@ function makeTable(rows){
     STORES.forEach(s => {
       const v = r.stores[s];
       if(!v?.price){
-        html += `<td class="empty">${v?.error ? '✗' : '-'}</td>`;
+        html += `<td class="empty" data-store="${s}">${v?.error ? '✗' : '-'}</td>`;
       } else {
         const cls = v.price === lo ? 'price lowest' : (v.price === hi && prices.length > 1 ? 'price highest' : 'price');
         const matchName = v.name ? `<div class="match">↳ ${escapeHtml(v.name.slice(0,80))}</div>` : '';
-        html += `<td class="${cls}">${fmtPrice(v.price)}${matchName}</td>`;
+        html += `<td class="${cls}" data-store="${s}">${fmtPrice(v.price)}${matchName}</td>`;
       }
     });
     html += '</tr>';
